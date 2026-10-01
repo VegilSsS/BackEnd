@@ -28,17 +28,10 @@ ORDER_RULE_TEXT = (
 
 def get_actor(request):
     """
-    US-11: mientras no haya login real, todas las operaciones se asocian a un
-    usuario 'demo' fijo, para no bloquear el resto del backlog (Sprint 0-1).
-    Cuando el front-end mande un usuario autenticado, se usa ese.
+    Returns the authenticated user. If not authenticated, DRF permissions
+    should block the request before reaching here.
     """
-    if request.user and request.user.is_authenticated:
-        return request.user
-    demo_user, _ = User.objects.get_or_create(
-        username="demo",
-        defaults={"first_name": "Usuario", "last_name": "Demo"},
-    )
-    return demo_user
+    return request.user
 
 
 def get_or_create_capacity(actor):
@@ -103,7 +96,16 @@ def group_for_today(actor, course=None, status=None, today=None):
     if status:
         qs = qs.filter(status=status.upper())
     else:
-        qs = qs.exclude(status=SubtaskStatus.DONE)
+        from django.db.models import Q
+        # Conservar tareas completadas solo durante el día en que se completaron.
+        # Si done_at no existe, usar target_date como fallback.
+        qs = qs.exclude(
+            Q(status=SubtaskStatus.DONE) &
+            (
+                (Q(done_at__isnull=False) & Q(done_at__date__lt=today)) |
+                (Q(done_at__isnull=True) & Q(target_date__lt=today))
+            )
+        )
 
     qs = qs.order_by("target_date", "estimated_hours")
 
