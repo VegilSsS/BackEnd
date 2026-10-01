@@ -86,6 +86,7 @@ class ActivitySerializer(serializers.ModelSerializer):
     subtasks_total = serializers.ReadOnlyField()
     subtasks_done = serializers.ReadOnlyField()
     progress_percent = serializers.ReadOnlyField()
+    subtasks = SubtaskNestedSerializer(many=True, read_only=True)
 
     class Meta:
         model = Activity
@@ -95,10 +96,13 @@ class ActivitySerializer(serializers.ModelSerializer):
             "course",
             "type",
             "due_date",
+            "time",
+            "location",
             "description",
             "subtasks_total",
             "subtasks_done",
             "progress_percent",
+            "subtasks",
             "created_at",
             "updated_at",
         ]
