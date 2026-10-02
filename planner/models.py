@@ -32,6 +32,8 @@ class Activity(models.Model):
     course = models.CharField(max_length=120, blank=True, default="")
     type = models.CharField(max_length=20, choices=ActivityType.choices, default=ActivityType.TAREA)
     due_date = models.DateField()
+    time = models.TimeField(null=True, blank=True)
+    location = models.CharField(max_length=200, blank=True, default="")
     description = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

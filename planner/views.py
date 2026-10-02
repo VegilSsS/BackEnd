@@ -3,6 +3,11 @@ from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.tokens import RefreshToken
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from django.contrib.auth import get_user_model
 
 from . import logic
 from .models import Activity, Subtask, SubtaskStatus
@@ -207,3 +212,85 @@ class DailyCapacityView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+User = get_user_model()
+
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        token = request.data.get('token')
+        if not token:
+            return Response({"error": "No token provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                token, 
+                google_requests.Request(),
+                clock_skew_in_seconds=30
+            )
+            email = idinfo.get('email', '')
+
+            if not email.endswith('@correounivalle.edu.co'):
+                return Response({"error": "Solo se permiten correos @correounivalle.edu.co"}, status=status.HTTP_403_FORBIDDEN)
+
+            user, created = User.objects.get_or_create(username=email, defaults={
+                'email': email,
+                'first_name': idinfo.get('given_name', ''),
+                'last_name': idinfo.get('family_name', '')
+            })
+
+            if not created:
+                updated = False
+                if idinfo.get('given_name') and not user.first_name:
+                    user.first_name = idinfo.get('given_name')
+                    updated = True
+                if idinfo.get('family_name') and not user.last_name:
+                    user.last_name = idinfo.get('family_name')
+                    updated = True
+                if updated:
+                    user.save()
+
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': {
+                    'email': user.email,
+                    'first_name': user.first_name or idinfo.get('given_name', ''),
+                    'picture': idinfo.get('picture', '')
+                }
+            })
+
+        except ValueError as e:
+            return Response({"error": f"Invalid token: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '')
+        password = request.data.get('password', '')
+        first_name = request.data.get('first_name', '')
+
+        if not email or not password:
+            return Response({"error": "Faltan datos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not email.endswith('@correounivalle.edu.co'):
+            return Response({"error": "Solo se permiten correos @correounivalle.edu.co"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username=email).exists():
+            return Response({"error": "Este correo ya está registrado"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(username=email, email=email, password=password, first_name=first_name)
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': {
+                'email': user.email,
+                'first_name': user.first_name,
+            }
+        }, status=status.HTTP_201_CREATED)
