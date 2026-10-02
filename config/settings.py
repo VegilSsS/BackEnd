@@ -158,5 +158,8 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
 }
+<<<<<<< HEAD
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
+=======
+>>>>>>> f7ac3944a245c187b6371b677821cd8790eca459
