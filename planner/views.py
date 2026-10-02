@@ -232,8 +232,8 @@ class GoogleLoginView(APIView):
             )
             email = idinfo.get('email', '')
 
-            if not email.endswith('@correounivalle.edu.co'):
-                return Response({"error": "Solo se permiten correos @correounivalle.edu.co"}, status=status.HTTP_403_FORBIDDEN)
+            if not (email.endswith('@correounivalle.edu.co') or email.endswith('@gmail.com')):
+                return Response({"error": "Solo se permiten correos @correounivalle.edu.co o @gmail.com"}, status=status.HTTP_403_FORBIDDEN)
 
             user, created = User.objects.get_or_create(username=email, defaults={
                 'email': email,
@@ -278,8 +278,8 @@ class RegisterView(APIView):
         if not email or not password:
             return Response({"error": "Faltan datos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not email.endswith('@correounivalle.edu.co'):
-            return Response({"error": "Solo se permiten correos @correounivalle.edu.co"}, status=status.HTTP_400_BAD_REQUEST)
+        if not (email.endswith('@correounivalle.edu.co') or email.endswith('@gmail.com')):
+            return Response({"error": "Solo se permiten correos @correounivalle.edu.co o @gmail.com"}, status=status.HTTP_400_BAD_REQUEST)
 
         if User.objects.filter(username=email).exists():
             return Response({"error": "Este correo ya está registrado"}, status=status.HTTP_400_BAD_REQUEST)
