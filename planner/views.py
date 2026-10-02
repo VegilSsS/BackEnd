@@ -49,6 +49,12 @@ class ActivityViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=logic.get_actor(self.request))
 
+    def perform_update(self, serializer):
+        old_date = serializer.instance.due_date if serializer.instance else None
+        updated_activity = serializer.save()
+        if old_date and old_date != updated_activity.due_date:
+            updated_activity.subtasks.update(target_date=updated_activity.due_date)
+
 
 class ActivitySubtaskListView(APIView):
     """
