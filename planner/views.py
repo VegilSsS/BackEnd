@@ -107,9 +107,10 @@ class SubtaskDetailView(APIView):
 
         new_status = request.data.get("status")
         if new_status:
-            if new_status == SubtaskStatus.DONE and subtask.status != SubtaskStatus.DONE:
-                serializer.save(done_at=timezone.now())
-            elif new_status != SubtaskStatus.DONE and subtask.status == SubtaskStatus.DONE:
+            if new_status == SubtaskStatus.DONE:
+                done_time = subtask.done_at or timezone.now()
+                serializer.save(done_at=done_time, postpone_note="")
+            elif subtask.status == SubtaskStatus.DONE:
                 serializer.save(done_at=None)
             else:
                 serializer.save()

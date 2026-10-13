@@ -79,6 +79,23 @@ class Sprint4BackendTests(APITestCase):
             "Esperando confirmación del proveedor de catering para cotización final",
         )
 
+    def test_completar_subtarea_pospuesta_limpia_nota_explicativa(self):
+        """Al marcar una tarea pospuesta como Hecha (DONE), la nota explicativa se limpia automáticamente."""
+        # Primero posponemos con nota
+        self.subtask2.status = SubtaskStatus.POSTPONED
+        self.subtask2.postpone_note = "Pendiente cotización"
+        self.subtask2.save()
+
+        # Completamos la tarea
+        url = reverse("subtask-detail", kwargs={"pk": self.subtask2.pk})
+        response = self.client.patch(url, {"status": SubtaskStatus.DONE}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.subtask2.refresh_from_db()
+        self.assertEqual(self.subtask2.status, SubtaskStatus.DONE)
+        self.assertEqual(self.subtask2.postpone_note, "")
+        self.assertIsNotNone(self.subtask2.done_at)
+
     def test_c2_barra_progreso_calculo_consistente(self):
         """C2: Consulta de progreso por evento calcula porcentaje exacto y conteo."""
         # 1 de 2 tareas hecha -> 50%
