@@ -134,3 +134,23 @@ class Sprint4BackendTests(APITestCase):
         url = reverse("subtask-detail", kwargs={"pk": self.subtask1.pk})
         response = self.client.patch(url, {"estimated_hours": -1}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_auth_login_y_profile_retornan_nombre_registrado(self):
+        """Login y auth/me retornan el nombre del usuario registrado para mostrarlo en el perfil."""
+        # 1. Login
+        login_url = reverse("token_obtain_pair")
+        login_resp = self.client.post(
+            login_url,
+            {"username": self.user.username, "password": "testpassword123"},
+            format="json",
+        )
+        self.assertEqual(login_resp.status_code, status.HTTP_200_OK)
+        self.assertIn("user", login_resp.data)
+        self.assertEqual(login_resp.data["user"]["first_name"], "Sergio")
+
+        # 2. Profile auth/me
+        me_url = reverse("user-profile")
+        me_resp = self.client.get(me_url)
+        self.assertEqual(me_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(me_resp.data["first_name"], "Sergio")
+

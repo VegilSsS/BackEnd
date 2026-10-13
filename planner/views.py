@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from django.contrib.auth import get_user_model
@@ -291,7 +293,8 @@ class RegisterView(APIView):
     def post(self, request):
         email = request.data.get('email', '')
         password = request.data.get('password', '')
-        first_name = request.data.get('first_name', '')
+        first_name = request.data.get('first_name', '').strip()
+        display_name = first_name or email.split('@')[0].capitalize()
 
         if not email or not password:
             return Response({"error": "Faltan datos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
@@ -302,7 +305,7 @@ class RegisterView(APIView):
         if User.objects.filter(username=email).exists():
             return Response({"error": "Este correo ya está registrado"}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.create_user(username=email, email=email, password=password, first_name=first_name)
+        user = User.objects.create_user(username=email, email=email, password=password, first_name=display_name)
         refresh = RefreshToken.for_user(user)
         return Response({
             'refresh': str(refresh),
@@ -312,3 +315,33 @@ class RegisterView(APIView):
                 'first_name': user.first_name,
             }
         }, status=status.HTTP_201_CREATED)
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        display_name = self.user.first_name or self.user.username.split('@')[0].capitalize()
+        data['user'] = {
+            'email': self.user.email,
+            'first_name': display_name,
+            'username': self.user.username,
+        }
+        return data
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+
+class UserProfileView(APIView):
+    """
+    Retorna los datos del usuario autenticado actual, incluyendo el nombre con el que se registró.
+    """
+    def get(self, request):
+        user = logic.get_actor(request)
+        display_name = user.first_name or user.username.split('@')[0].capitalize()
+        return Response({
+            'email': user.email,
+            'first_name': display_name,
+            'username': user.username,
+        })
