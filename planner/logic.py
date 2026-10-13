@@ -43,14 +43,14 @@ def get_or_create_capacity(actor):
 
 def planned_hours_for_day(actor, target_date, exclude_subtask_id=None):
     """
-    US-07: suma de estimated_hours para subtareas NO 'DONE' de ese usuario en
-    ese día, excluyendo opcionalmente la subtarea que se está reprogramando
-    (para poder recalcular su nueva posición sin contarla dos veces).
+    US-07 / Sprint 4 (C3): suma de estimated_hours para subtareas activas (excluyendo
+    'DONE' y 'POSTPONED') de ese usuario en ese día, excluyendo opcionalmente la subtarea
+    que se está reprogramando. Al ejecutar o posponer una gestión, la carga urgente del día se reduce.
     """
     qs = Subtask.objects.filter(
         activity__owner=actor,
         target_date=target_date,
-    ).exclude(status=SubtaskStatus.DONE)
+    ).exclude(status__in=[SubtaskStatus.DONE, SubtaskStatus.POSTPONED])
     if exclude_subtask_id is not None:
         qs = qs.exclude(pk=exclude_subtask_id)
     total = qs.aggregate(total=Sum("estimated_hours"))["total"] or 0

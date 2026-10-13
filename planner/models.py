@@ -53,6 +53,14 @@ class Activity(models.Model):
         return self.subtasks.filter(status=SubtaskStatus.DONE).count()
 
     @property
+    def subtasks_postponed(self):
+        return self.subtasks.filter(status=SubtaskStatus.POSTPONED).count()
+
+    @property
+    def subtasks_pending(self):
+        return self.subtasks.filter(status=SubtaskStatus.PENDING).count()
+
+    @property
     def progress_percent(self):
         total = self.subtasks_total
         if total == 0:

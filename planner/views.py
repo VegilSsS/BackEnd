@@ -106,8 +106,13 @@ class SubtaskDetailView(APIView):
         serializer.is_valid(raise_exception=True)
 
         new_status = request.data.get("status")
-        if new_status == SubtaskStatus.DONE and subtask.status != SubtaskStatus.DONE:
-            serializer.save(done_at=timezone.now())
+        if new_status:
+            if new_status == SubtaskStatus.DONE and subtask.status != SubtaskStatus.DONE:
+                serializer.save(done_at=timezone.now())
+            elif new_status != SubtaskStatus.DONE and subtask.status == SubtaskStatus.DONE:
+                serializer.save(done_at=None)
+            else:
+                serializer.save()
         else:
             serializer.save()
 
@@ -186,7 +191,10 @@ class OverloadCheckView(APIView):
 
 
 class ActivityProgressView(APIView):
-    """US-10: GET /api/activities/<id>/progress/"""
+    """
+    US-10 / Sprint 4 (C2, C5): GET /api/activities/<id>/progress/
+    Consulta de progreso por evento con conteo exacto y porcentaje en tiempo real.
+    """
 
     def get(self, request, activity_id):
         activity = get_object_or_404(
@@ -195,8 +203,11 @@ class ActivityProgressView(APIView):
         return Response(
             {
                 "activity_id": activity.id,
+                "activity_title": activity.title,
                 "total": activity.subtasks_total,
                 "done": activity.subtasks_done,
+                "postponed": activity.subtasks_postponed,
+                "pending": activity.subtasks_pending,
                 "progress_percent": activity.progress_percent,
             }
         )

@@ -61,7 +61,7 @@ class SubtaskNestedSerializer(serializers.ModelSerializer):
 
 
 class TodaySubtaskSerializer(serializers.ModelSerializer):
-    """Subtarea + datos de su actividad, para la vista /today (US-04)."""
+    """Subtarea + datos de su actividad, para la vista /today (US-04 / Sprint 4 C1, C3)."""
 
     activity_id = serializers.IntegerField(source="activity.id", read_only=True)
     activity_title = serializers.CharField(source="activity.title", read_only=True)
@@ -79,12 +79,16 @@ class TodaySubtaskSerializer(serializers.ModelSerializer):
             "estimated_hours",
             "description",
             "status",
+            "postpone_note",
+            "done_at",
         ]
 
 
 class ActivitySerializer(serializers.ModelSerializer):
     subtasks_total = serializers.ReadOnlyField()
     subtasks_done = serializers.ReadOnlyField()
+    subtasks_postponed = serializers.ReadOnlyField()
+    subtasks_pending = serializers.ReadOnlyField()
     progress_percent = serializers.ReadOnlyField()
     subtasks = SubtaskNestedSerializer(many=True, read_only=True)
 
@@ -101,6 +105,8 @@ class ActivitySerializer(serializers.ModelSerializer):
             "description",
             "subtasks_total",
             "subtasks_done",
+            "subtasks_postponed",
+            "subtasks_pending",
             "progress_percent",
             "subtasks",
             "created_at",
