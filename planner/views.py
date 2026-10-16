@@ -1,3 +1,4 @@
+import re
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status, viewsets
@@ -250,10 +251,10 @@ class GoogleLoginView(APIView):
                 google_requests.Request(),
                 clock_skew_in_seconds=30
             )
-            email = idinfo.get('email', '')
+            email = (idinfo.get('email') or '').strip().lower()
 
-            if not (email.endswith('@correounivalle.edu.co') or email.endswith('@gmail.com')):
-                return Response({"error": "Solo se permiten correos @correounivalle.edu.co o @gmail.com"}, status=status.HTTP_403_FORBIDDEN)
+            if not email or '@' not in email:
+                return Response({"error": "Correo no válido proporcionado por el proveedor"}, status=status.HTTP_400_BAD_REQUEST)
 
             user, created = User.objects.get_or_create(username=email, defaults={
                 'email': email,
@@ -291,7 +292,7 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        email = request.data.get('email', '')
+        email = (request.data.get('email') or '').strip().lower()
         password = request.data.get('password', '')
         first_name = request.data.get('first_name', '').strip()
         display_name = first_name or email.split('@')[0].capitalize()
@@ -299,8 +300,8 @@ class RegisterView(APIView):
         if not email or not password:
             return Response({"error": "Faltan datos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not (email.endswith('@correounivalle.edu.co') or email.endswith('@gmail.com')):
-            return Response({"error": "Solo se permiten correos @correounivalle.edu.co o @gmail.com"}, status=status.HTTP_400_BAD_REQUEST)
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+            return Response({"error": "Por favor ingresa un correo electrónico válido"}, status=status.HTTP_400_BAD_REQUEST)
 
         if User.objects.filter(username=email).exists():
             return Response({"error": "Este correo ya está registrado"}, status=status.HTTP_400_BAD_REQUEST)
